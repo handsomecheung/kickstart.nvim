@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -369,6 +369,7 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      -- pcall(require('telescope').load_extension, 'projects')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -567,15 +568,15 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
-        -- rust_analyzer = {},
+        pyright = {},
+        rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`tsserver`) will work just fine
-        -- tsserver = {},
+        tsserver = {},
         --
 
         lua_ls = {
@@ -639,7 +640,7 @@ require('lazy').setup({
       },
     },
     opts = {
-      notify_on_error = false,
+      notify_on_error = true,
       format_on_save = function(bufnr)
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
@@ -653,11 +654,14 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
         -- is found.
-        -- javascript = { { "prettierd", "prettier" } },
+        javascript = { { 'prettierd', 'prettier' } },
+        javascriptreact = { { 'prettierd', 'prettier' } },
+        typescript = { { 'prettierd', 'prettier' } },
+        typescriptreact = { { 'prettierd', 'prettier' } },
       },
     },
   },
@@ -876,6 +880,18 @@ require('lazy').setup({
     opts = {
       debug = true, -- Enable debugging
       -- See Configuration section for rest
+      --
+      mappings = {
+        complete = {
+          detail = 'Use @<Tab> or /<Tab> for options.',
+          -- Default <Tab> setting conflicts with cmp and coc-nvim
+          insert = '<S-Tab>',
+        },
+      },
+    },
+    keys = {
+      { '<leader>C', desc = '[C]opilot', mode = 'n' },
+      { '<leader>Cc', ':CopilotChat<CR>', desc = 'Copilot [C]hat', mode = 'n' },
     },
     -- See Commands section for default commands if you want to lazy load on them
   },
@@ -933,6 +949,22 @@ require('lazy').setup({
       'RainbowDelimQuoted',
       'RainbowMultiDelim',
     },
+  },
+
+  {
+    'ahmedkhalf/project.nvim',
+    keys = {
+      { '<leader>p', desc = '[P]rojects', mode = 'n' },
+      { '<leader>pp', ':Telescope projects<CR>', desc = 'Telescope [P]rojects', mode = 'n' },
+    },
+    config = function()
+      require('project_nvim').setup {
+        -- your configuration comes here
+        -- or leave it empty to use the default settings
+        -- refer to the configuration section below
+        --
+      }
+    end,
   },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
