@@ -864,6 +864,77 @@ require('lazy').setup({
     end,
   },
 
+  { 'github/copilot.vim' },
+  {
+    'CopilotC-Nvim/CopilotChat.nvim',
+    branch = 'canary',
+    dependencies = {
+      -- { 'zbirenbaum/copilot.lua' }, -- or github/copilot.vim
+      { 'github/copilot.vim' },
+      { 'nvim-lua/plenary.nvim' }, -- for curl, log wrapper
+    },
+    opts = {
+      debug = true, -- Enable debugging
+      -- See Configuration section for rest
+    },
+    -- See Commands section for default commands if you want to lazy load on them
+  },
+
+  {
+    'NeogitOrg/neogit',
+    dependencies = {
+      'nvim-lua/plenary.nvim', -- required
+      'sindrets/diffview.nvim', -- optional - Diff integration
+
+      -- Only one of these is needed, not both.
+      'nvim-telescope/telescope.nvim', -- optional
+      -- 'ibhagwan/fzf-lua', -- optional
+    },
+    config = true,
+    keys = {
+      { '<leader>g', desc = 'Neo[G]it', mode = 'n' },
+      { '<leader>gg', ':Neogit<CR>', desc = 'Neo[G]it Status', mode = 'n' },
+    },
+  },
+
+  {
+    'nvim-tree/nvim-tree.lua',
+    keys = {
+      { '<leader>tt', ':NvimTreeToggle<CR>', { silent = true }, desc = '[T]ree Toggle', mode = 'n' },
+      { '<leader>tf', ':NvimTreeFocus<CR>', { silent = true }, desc = '[T]ree Force', mode = 'n' },
+    },
+    config = function()
+      -- disable netrw at the very start of your init.lua
+      vim.g.loaded_netrw = 1
+      vim.g.loaded_netrwPlugin = 1
+
+      -- optionally enable 24-bit colour
+      vim.opt.termguicolors = true
+
+      require('nvim-tree').setup {}
+    end,
+  },
+
+  {
+    'cameron-wags/rainbow_csv.nvim',
+    config = true,
+    ft = {
+      'csv',
+      'tsv',
+      'csv_semicolon',
+      'csv_whitespace',
+      'csv_pipe',
+      'rfc_csv',
+      'rfc_semicolon',
+    },
+    cmd = {
+      'RainbowDelim',
+      'RainbowDelimSimple',
+      'RainbowDelimQuoted',
+      'RainbowMultiDelim',
+    },
+  },
+
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
