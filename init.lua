@@ -102,7 +102,7 @@ vim.g.have_nerd_font = true
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+-- vim.opt.relativenumber = true -- :set nu rnu
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -160,6 +160,11 @@ vim.opt.scrolloff = 10
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+-- Use jj to escape from insert mode
+vim.keymap.set('i', 'jj', '<Esc>')
+
+vim.keymap.set('n', '<leader>bd', ':bd<CR>', { desc = 'Buffer [D]elete' })
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]iagnostic message' })
@@ -288,6 +293,7 @@ require('lazy').setup({
         ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
         ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
         ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
+        ['<leader>b'] = { name = '[B]uffter', _ = 'which_key_ignore' },
       }
       -- visual mode
       require('which-key').register({
@@ -654,6 +660,7 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
+        --
         python = { 'isort', 'black' },
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
@@ -913,23 +920,23 @@ require('lazy').setup({
     },
   },
 
-  {
-    'nvim-tree/nvim-tree.lua',
-    keys = {
-      { '<leader>tt', ':NvimTreeToggle<CR>', { silent = true }, desc = '[T]ree Toggle', mode = 'n' },
-      { '<leader>tf', ':NvimTreeFocus<CR>', { silent = true }, desc = '[T]ree Force', mode = 'n' },
-    },
-    config = function()
-      -- disable netrw at the very start of your init.lua
-      vim.g.loaded_netrw = 1
-      vim.g.loaded_netrwPlugin = 1
-
-      -- optionally enable 24-bit colour
-      vim.opt.termguicolors = true
-
-      require('nvim-tree').setup {}
-    end,
-  },
+  -- {
+  --   'nvim-tree/nvim-tree.lua',
+  --   keys = {
+  --     { '<leader>tt', ':NvimTreeToggle<CR>', { silent = true }, desc = '[T]ree Toggle', mode = 'n' },
+  --     { '<leader>tf', ':NvimTreeFocus<CR>', { silent = true }, desc = '[T]ree Force', mode = 'n' },
+  --   },
+  --   config = function()
+  --     -- disable netrw at the very start of your init.lua
+  --     vim.g.loaded_netrw = 1
+  --     vim.g.loaded_netrwPlugin = 1
+  --
+  --     -- optionally enable 24-bit colour
+  --     vim.opt.termguicolors = true
+  --
+  --     require('nvim-tree').setup {}
+  --   end,
+  -- },
 
   {
     'cameron-wags/rainbow_csv.nvim',
@@ -951,19 +958,192 @@ require('lazy').setup({
     },
   },
 
+  -- {
+  --   'ahmedkhalf/project.nvim',
+  --   keys = {
+  --     { '<leader>p', desc = '[P]rojects', mode = 'n' },
+  --     { '<leader>pp', ':Telescope projects<CR>', desc = 'Telescope [P]rojects', mode = 'n' },
+  --   },
+  --   config = function()
+  --     require('project_nvim').setup {
+  --       -- your configuration comes here
+  --       -- or leave it empty to use the default settings
+  --       -- refer to the configuration section below
+  --       --
+  --     }
+  --   end,
+  -- },
+
   {
-    'ahmedkhalf/project.nvim',
+    'gnikdroy/projections.nvim',
     keys = {
       { '<leader>p', desc = '[P]rojects', mode = 'n' },
-      { '<leader>pp', ':Telescope projects<CR>', desc = 'Telescope [P]rojects', mode = 'n' },
     },
     config = function()
-      require('project_nvim').setup {
-        -- your configuration comes here
-        -- or leave it empty to use the default settings
-        -- refer to the configuration section below
-        --
+      require('projections').setup {
+        workspaces = { -- Default workspaces to search for
+          { '/mnt/coder-workspaces/public-workspace', { '.projections' } },
+          { '/mnt/coder-workspaces/private-workspace', { '.projections' } },
+          '/mnt/coder-workspaces/private-workspace/repos/local',
+          -- { "~/Documents/dev", { ".git" } },        Documents/dev is a workspace. patterns = { ".git" }
+          -- { "~/repos", {} },                        An empty pattern list indicates that all subdirectories are considered projects
+          -- "~/dev",                                  dev is a workspace. default patterns is used (specified below)
+        },
+        patterns = { '.git' }, -- Default patterns to use if none were specified. These are NOT regexps.
+        -- store_hooks = { pre = nil, post = nil },   -- pre and post hooks for store_session, callable | nil
+        -- restore_hooks = { pre = nil, post = nil }, -- pre and post hooks for restore_session, callable | nil
+        -- workspaces_file = "path/to/file",          -- Path to workspaces json file
+        -- sessions_directory = "path/to/dir",        -- Directory where sessions are stored
+
+        -- Autostore session on VimExit
       }
+
+      vim.opt.sessionoptions:append 'localoptions' -- Save localoptions to session file
+
+      -- Switch to project if vim was started in a project dir
+      local switcher = require 'projections.switcher'
+      vim.api.nvim_create_autocmd({ 'VimEnter' }, {
+        callback = function()
+          if vim.fn.argc() == 0 then
+            switcher.switch(vim.loop.cwd())
+          end
+        end,
+      })
+
+      -- Bind <leader>fp to Telescope projections
+      require('telescope').load_extension 'projections'
+      vim.keymap.set('n', '<leader>pp', function()
+        vim.cmd 'Telescope projections'
+      end)
+
+      local Session = require 'projections.session'
+
+      -- If vim was started with arguments, do nothing
+      -- If in some project's root, attempt to restore that project's session
+      -- If not, restore last session
+      -- If no sessions, do nothing
+      vim.api.nvim_create_autocmd({ 'VimEnter' }, {
+        callback = function()
+          if vim.fn.argc() ~= 0 then
+            return
+          end
+          local session_info = Session.info(vim.loop.cwd())
+          if session_info == nil then
+            Session.restore_latest()
+          else
+            Session.restore(vim.loop.cwd())
+          end
+        end,
+        desc = 'Restore last session automatically',
+      })
+      -- Autostore session on VimExit
+      vim.api.nvim_create_autocmd({ 'VimLeavePre' }, {
+        callback = function()
+          Session.store(vim.loop.cwd())
+        end,
+      })
+
+      vim.api.nvim_create_user_command('StoreProjectSession', function()
+        Session.store(vim.loop.cwd())
+      end, {})
+
+      vim.api.nvim_create_user_command('RestoreProjectSession', function()
+        Session.restore(vim.loop.cwd())
+      end, {})
+
+      local Workspace = require 'projections.workspace'
+      -- Add workspace command
+      vim.api.nvim_create_user_command('AddWorkspace', function()
+        Workspace.add(vim.loop.cwd())
+      end, {})
+    end,
+  },
+
+  {
+    'nvim-telescope/telescope-file-browser.nvim',
+    dependencies = { 'nvim-telescope/telescope.nvim', 'nvim-lua/plenary.nvim' },
+    keys = {
+      { '<leader>db', ':Telescope file_browser path=%:p:h select_buffer=true<CR>', desc = 'Telescope Files [B]rowser', mode = 'n' },
+    },
+  },
+
+  {
+    'folke/noice.nvim',
+    dependencies = {
+      -- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
+      'MunifTanjim/nui.nvim',
+      -- OPTIONAL:
+      --   `nvim-notify` is only needed, if you want to use the notification view.
+      --   If not available, we use `mini` as the fallback
+      'rcarriga/nvim-notify',
+    },
+    event = 'VeryLazy',
+    opts = {
+      -- add any options here
+    },
+    config = function()
+      require('noice').setup {
+        lsp = {
+          -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+          override = {
+            ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
+            ['vim.lsp.util.stylize_markdown'] = true,
+            ['cmp.entry.get_documentation'] = true, -- requires hrsh7th/nvim-cmp
+          },
+        },
+        -- you can enable a preset for easier configuration
+        presets = {
+          bottom_search = true, -- use a classic bottom cmdline for search
+          command_palette = true, -- position the cmdline and popupmenu together
+          long_message_to_split = true, -- long messages will be sent to a split
+          inc_rename = false, -- enables an input dialog for inc-rename.nvim
+          lsp_doc_border = false, -- add a border to hover docs and signature help
+        },
+      }
+    end,
+  },
+
+  {
+    'akinsho/toggleterm.nvim',
+    version = '*',
+
+    keys = {
+      { '<leader>tt', ':ToggleTerm direction=horizontal<CR>', { silent = true }, desc = 'Toggle [T]erm Horizontal', mode = 'n' },
+      { '<leader>tv', ':ToggleTerm direction=vertical size=85<CR>', { silent = true }, desc = 'Toggle Term [V]ertical', mode = 'n' },
+      { '<leader>tT', ':ToggleTerm direction=tab<CR>', { silent = true }, desc = 'Toggle Term [T]ab', mode = 'n' },
+      { '<leader>tf', ':ToggleTerm direction=float<CR>', { silent = true }, desc = 'Toggle Term [F]loat', mode = 'n' },
+      { 'jj', '<C-\\><C-n>', { silent = true }, desc = 'Exit terminal mode', mode = 't' },
+      {
+        '<space>s',
+        function()
+          require('toggleterm').send_lines_to_terminal('visual_selection', false, { args = vim.v.count })
+          -- require('toggleterm').send_lines_to_terminal('visual_lines', false, { args = vim.v.count })
+        end,
+        { silent = true },
+        desc = '[S]end Lines to Terminal',
+        mode = 'v',
+      },
+    },
+    config = true,
+  },
+
+  {
+    'nvim-orgmode/orgmode',
+    event = 'VeryLazy',
+    ft = { 'org' },
+    config = function()
+      -- Setup orgmode
+      require('orgmode').setup {
+        org_agenda_files = '~/private-workspace/workspace/orgfiles/**/*',
+        org_default_notes_file = '~/private-workspace/workspace/orgfiles/refile.org',
+      }
+
+      -- NOTE: If you are using nvim-treesitter with ~ensure_installed = "all"~ option
+      -- add ~org~ to ignore_install
+      -- require('nvim-treesitter.configs').setup({
+      --   ensure_installed = 'all',
+      --   ignore_install = { 'org' },
+      -- })
     end,
   },
 
